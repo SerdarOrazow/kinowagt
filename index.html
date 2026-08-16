@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<title>Kino Wagt</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    color-scheme: dark;
+    --bg:#0b0b0d;
+    --panel:#141418;
+    --red:#e01f2d;
+    --red-soft:#ff3b47;
+    --text:#f2f2f4;
+    --muted:#8b8b94;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;
+    overflow:hidden;
+  }
+  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+
+  /* ---------- плеер ---------- */
+  #frame{width:100%;height:100%;border:0;display:block;background:#000;}
+
+  /* ---------- заставка и сообщения ---------- */
+  .screen{
+    width:100%;height:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 26px;
+    text-align:center;
+    background:
+      radial-gradient(120% 80% at 50% 0%, #1c1c22 0%, var(--bg) 60%);
+  }
+  .logo{
+    width:96px;height:96px;border-radius:24px;
+    background:linear-gradient(160deg,var(--red-soft),var(--red) 55%,#a3121c);
+    box-shadow:0 14px 40px rgba(224,31,45,.35);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    margin-bottom:22px;
+  }
+  .logo b{
+    font-size:22px;font-weight:800;letter-spacing:1.5px;line-height:1;
+    color:#fff;
+  }
+  .logo span{
+    font-size:13px;font-weight:600;letter-spacing:.5px;line-height:1;
+    margin-top:3px;color:rgba(255,255,255,.92);
+    font-style:italic;
+  }
+  h1{font-size:17px;font-weight:600;margin-bottom:8px;letter-spacing:.2px;}
+  p{font-size:14px;line-height:1.6;color:var(--muted);max-width:340px;}
+
+  .bar{
+    width:132px;height:3px;border-radius:3px;margin-top:22px;
+    background:rgba(255,255,255,.09);overflow:hidden;position:relative;
+  }
+  .bar i{
+    position:absolute;inset:0;width:42%;border-radius:3px;
+    background:linear-gradient(90deg,transparent,var(--red-soft),transparent);
+    animation:slide 1.15s ease-in-out infinite;
+  }
+  @keyframes slide{
+    0%{transform:translateX(-120%)}
+    100%{transform:translateX(260%)}
+  }
+
+  .btn{
+    margin-top:24px;
+    display:inline-block;
+    padding:13px 26px;border-radius:12px;
+    background:var(--red);color:#fff;
+    font-size:15px;font-weight:600;text-decoration:none;
+    box-shadow:0 8px 22px rgba(224,31,45,.32);
+  }
+  .btn:active{transform:translateY(1px);}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="screen" id="boot">
+    <div class="logo"><b>KINO</b><span>wagt</span></div>
+    <h1>Готовим плеер</h1>
+    <p>Секунду, включаем видео…</p>
+    <div class="bar"><i></i></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    try { tg.ready(); } catch (e) {}
+    try { tg.expand(); } catch (e) {}
+    try { tg.requestFullscreen(); } catch (e) {}
+    try { tg.setHeaderColor('#0b0b0d'); } catch (e) {}
+    try { tg.setBackgroundColor('#0b0b0d'); } catch (e) {}
+    try { tg.disableVerticalSwipes(); } catch (e) {}
+    try { tg.enableClosingConfirmation(); } catch (e) {}
+  }
+
+  var stage = document.getElementById('stage');
+
+  function screen(title, text, linkUrl) {
+    var extra = linkUrl
+      ? '<a class="btn" href="' + linkUrl + '" target="_blank" rel="noopener">Открыть в браузере</a>'
+      : '';
+    stage.innerHTML =
+      '<div class="screen">' +
+        '<div class="logo"><b>KINO</b><span>wagt</span></div>' +
+        '<h1>' + title + '</h1><p>' + text + '</p>' + extra +
+      '</div>';
+  }
+
+  // Идентификатор приходит из ссылки Mini App (startapp).
+  // Параметр ?v= оставлен, чтобы страницу можно было проверить в браузере.
+  function param() {
+    var fromApp = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
+    if (fromApp) return fromApp;
+    var q = new URLSearchParams(location.search);
+    return q.get('v') || q.get('tgWebAppStartParam') || '';
+  }
+
+  function decodeUrl(raw) {
+    try {
+      var s = raw.replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      return decodeURIComponent(escape(atob(s)));
+    } catch (e) { return ''; }
+  }
+
+  var raw = (param() || '').trim();
+  if (!raw) {
+    screen('Видео не выбрано', 'Откройте плеер кнопкой «Смотреть» под постом в канале.');
+    return;
+  }
+
+  var videoId = '', sourceUrl = '';
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) {
+    videoId = raw;
+    sourceUrl = 'https://youtu.be/' + raw;
+  } else {
+    sourceUrl = decodeUrl(raw);
+    var m = sourceUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+    if (m) videoId = m[1];
+  }
+
+  if (!videoId) {
+    screen('Не удалось открыть',
+           'Эта площадка не поддерживает встроенный плеер.',
+           sourceUrl || null);
+    return;
+  }
+
+  var frame = document.createElement('iframe');
+  frame.id = 'frame';
+  frame.src = 'https://www.youtube-nocookie.com/embed/' + videoId +
+              '?autoplay=1&playsinline=1&rel=0&modestbranding=1&fs=1&iv_load_policy=3&color=white';
+  frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen; accelerometer; gyroscope';
+  frame.setAttribute('allowfullscreen', '');
+  frame.referrerPolicy = 'origin-when-cross-origin';
+
+  frame.onload = function () { loaded = true; };
+  var loaded = false;
+
+  stage.innerHTML = '';
+  stage.appendChild(frame);
+
+  // Если автор запретил встраивание — окно останется пустым
+  setTimeout(function () {
+    if (!loaded) {
+      screen('Видео нельзя встроить',
+             'Автор ролика запретил показ вне YouTube. Остальные видео открываются нормально.',
+             sourceUrl);
+    }
+  }, 9000);
+})();
+</script>
+</body>
+</html>
