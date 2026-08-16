@@ -118,13 +118,56 @@
       '</div>';
   }
 
-  // Идентификатор приходит из ссылки Mini App (startapp).
-  // Параметр ?v= оставлен, чтобы страницу можно было проверить в браузере.
+  // Разные клиенты Telegram передают параметр по-разному, поэтому смотрим везде
   function param() {
-    var fromApp = tg && tg.initDataUnsafe ? tg.initDataUnsafe.start_param : null;
-    if (fromApp) return fromApp;
-    var q = new URLSearchParams(location.search);
-    return q.get('v') || q.get('tgWebAppStartParam') || '';
+    var found = '';
+
+    try {
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+        found = tg.initDataUnsafe.start_param;
+      }
+    } catch (e) {}
+
+    if (!found) {
+      try {
+        var q = new URLSearchParams(location.search);
+        found = q.get('v') || q.get('tgWebAppStartParam') || q.get('startapp') || '';
+      } catch (e) {}
+    }
+
+    if (!found && location.hash) {
+      try {
+        var h = new URLSearchParams(location.hash.replace(/^#/, ''));
+        found = h.get('tgWebAppStartParam') || h.get('startapp') || '';
+        if (!found) {
+          var raw = h.get('tgWebAppData') || '';
+          if (raw) {
+            var inner = new URLSearchParams(decodeURIComponent(raw));
+            found = inner.get('start_param') || '';
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!found && tg && tg.initData) {
+      try {
+        found = new URLSearchParams(tg.initData).get('start_param') || '';
+      } catch (e) {}
+    }
+
+    return found || '';
+  }
+
+  function diagnostics() {
+    var bits = [];
+    bits.push('search: ' + (location.search || '—'));
+    bits.push('hash: ' + (location.hash ? location.hash.slice(0, 90) : '—'));
+    try {
+      bits.push('start_param: ' +
+        ((tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '—'));
+    } catch (e) { bits.push('start_param: —'); }
+    bits.push('версия Telegram: ' + ((tg && tg.version) || '—'));
+    return bits.join('<br>');
   }
 
   function decodeUrl(raw) {
@@ -137,7 +180,10 @@
 
   var raw = (param() || '').trim();
   if (!raw) {
-    screen('Видео не выбрано', 'Откройте плеер кнопкой «Смотреть» под постом в канале.');
+    screen('Видео не выбрано',
+           'Откройте плеер кнопкой «Смотреть» под постом.' +
+           '<br><br><span style="font-size:11px;line-height:1.5;color:#5f5f68">' +
+           diagnostics() + '</span>');
     return;
   }
 
