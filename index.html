@@ -13,14 +13,14 @@
     --text:#f2f2f4; --muted:#8b8b94;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;background:var(--bg);color:var(--text);overflow:hidden;
+  html,body{height:100%;background:#000;color:var(--text);overflow:hidden;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;}
-  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
 
-  /* ---------- заставка и сообщения ---------- */
-  .screen{width:100%;height:100%;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;padding:32px 26px;text-align:center;
+  /* экран сообщений: заставка, отказы */
+  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(120% 80% at 50% 0%, #1c1c22 0%, var(--bg) 60%);}
+  .screen{width:100%;height:100%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:32px 26px;text-align:center;}
   .logo{width:96px;height:96px;border-radius:24px;
     background:linear-gradient(160deg,var(--red-soft),var(--red) 55%,#a3121c);
     box-shadow:0 14px 40px rgba(224,31,45,.35);
@@ -39,46 +39,17 @@
   .btn{margin-top:24px;display:inline-block;padding:13px 26px;border-radius:12px;
     background:var(--red);color:#fff;font-size:15px;font-weight:600;text-decoration:none;
     box-shadow:0 8px 22px rgba(224,31,45,.32);}
+  .code{font-size:11px;color:#5f5f68;margin-top:14px;}
 
-  /* ---------- плеер ---------- */
+  /* плеер занимает весь экран */
   #wrap{position:fixed;inset:0;background:#000;display:none;}
-  #frame{position:absolute;inset:0;width:100%;height:100%;border:0;}
-
-  /* центральная кнопка */
-  #tap{position:absolute;left:0;right:0;top:0;bottom:76px;
-    display:flex;align-items:center;justify-content:center;background:transparent;}
-  #big{width:78px;height:78px;border-radius:50%;border:0;cursor:pointer;
-    background:rgba(10,10,12,.55);backdrop-filter:blur(6px);
-    display:flex;align-items:center;justify-content:center;
-    opacity:0;transition:opacity .2s;}
-  #big.show{opacity:1;}
-  #big svg{width:32px;height:32px;fill:#fff;margin-left:2px;}
-
-  /* нижняя панель */
-  #panel{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 18px;
-    background:linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.55) 55%, transparent);
-    transition:opacity .25s;}
-  #panel.hidden{opacity:0;pointer-events:none;}
-  #track{height:16px;display:flex;align-items:center;cursor:pointer;}
-  #rail{position:relative;height:4px;width:100%;border-radius:4px;background:rgba(255,255,255,.22);}
-  #done{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--red);}
-  #knob{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
-    border-radius:50%;background:#fff;left:0;box-shadow:0 1px 4px rgba(0,0,0,.5);}
-  #row{display:flex;align-items:center;gap:14px;margin-top:10px;}
-  .ico{width:34px;height:34px;border:0;border-radius:9px;background:transparent;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;}
-  .ico:active{background:rgba(255,255,255,.12);}
-  .ico svg{width:19px;height:19px;fill:#fff;}
-  #time{font-size:12.5px;color:#d6d6db;font-variant-numeric:tabular-nums;letter-spacing:.3px;}
-  #spacer{flex:1;}
-  #brand{display:flex;align-items:center;gap:6px;opacity:.75;}
-  #brand i{width:15px;height:15px;border-radius:4px;background:var(--red);display:block;}
-  #brand span{font-size:11px;font-weight:700;color:#fff;letter-spacing:.4px;}
+  #frame,#wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
 </style>
 </head>
 <body>
+
 <div id="stage">
-  <div class="screen" id="boot">
+  <div class="screen">
     <div class="logo"><b>KINO</b><span>wagt</span></div>
     <h1>Готовим плеер</h1>
     <p>Секунду, включаем видео…</p>
@@ -86,34 +57,7 @@
   </div>
 </div>
 
-<div id="wrap">
-  <div id="frame"></div>
-  <div id="tap">
-    <button id="big" aria-label="Воспроизвести">
-      <svg id="bigIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    </button>
-  </div>
-  <div id="panel">
-    <div id="track"><div id="rail"><div id="done"></div><div id="knob"></div></div></div>
-    <div id="row">
-      <button class="ico" id="pp" aria-label="Пауза">
-        <svg id="ppIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      </button>
-      <button class="ico" id="back" aria-label="Назад 10 секунд">
-        <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
-      </button>
-      <button class="ico" id="fwd" aria-label="Вперёд 10 секунд">
-        <svg viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/></svg>
-      </button>
-      <span id="time">0:00 / 0:00</span>
-      <span id="spacer"></span>
-      <span id="brand"><i></i><span>KINO WAGT</span></span>
-      <button class="ico" id="full" aria-label="Во весь экран">
-        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-      </button>
-    </div>
-  </div>
-</div>
+<div id="wrap"><div id="frame"></div></div>
 
 <script>
 (function () {
@@ -129,17 +73,18 @@
 
   var stage = document.getElementById('stage');
   var wrap  = document.getElementById('wrap');
-
   var CHANNEL = 'https://t.me/kino_wagt';
 
-  function screen(title, text, withChannel) {
+  function screen(title, text, code) {
     wrap.style.display = 'none';
     stage.style.display = 'flex';
-    var extra = withChannel
-      ? '<a class="btn" id="chan" href="' + CHANNEL + '">Открыть канал Kino Wagt</a>' : '';
     stage.innerHTML =
-      '<div class="screen"><div class="logo"><b>KINO</b><span>wagt</span></div>' +
-      '<h1>' + title + '</h1><p>' + text + '</p>' + extra + '</div>';
+      '<div class="screen">' +
+        '<div class="logo"><b>KINO</b><span>wagt</span></div>' +
+        '<h1>' + title + '</h1><p>' + text + '</p>' +
+        '<a class="btn" id="chan" href="' + CHANNEL + '">Открыть канал Kino Wagt</a>' +
+        (code === undefined ? '' : '<div class="code">код ' + code + '</div>') +
+      '</div>';
 
     var chan = document.getElementById('chan');
     if (chan) {
@@ -152,6 +97,7 @@
     }
   }
 
+  // Идентификатор видео Telegram передаёт по-разному в разных версиях
   function param() {
     var found = '';
     try { if (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) found = tg.initDataUnsafe.start_param; } catch (e) {}
@@ -182,159 +128,91 @@
   }
 
   var raw = (param() || '').trim();
-  if (!raw) { screen('Видео не выбрано', 'Откройте плеер кнопкой «Смотреть» под постом.', true); return; }
+  if (!raw) {
+    screen('Видео не выбрано', 'Откройте плеер кнопкой «Смотреть» под постом.');
+    return;
+  }
 
-  var videoId = '', sourceUrl = '';
+  var videoId = '';
   if (/^[A-Za-z0-9_-]{11}$/.test(raw)) {
-    videoId = raw; sourceUrl = 'https://youtu.be/' + raw;
+    videoId = raw;
   } else {
-    sourceUrl = decodeUrl(raw);
-    var m = sourceUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+    var m = decodeUrl(raw).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
     if (m) videoId = m[1];
   }
-  if (!videoId) { screen('Не удалось открыть', 'Загляните в наш канал — там вся коллекция.', true); return; }
+  if (!videoId) {
+    screen('Не удалось открыть', 'Загляните в наш канал — там вся коллекция.');
+    return;
+  }
 
-  // ---------- проверка: разрешён ли показ вне YouTube ----------
-  var decided = false;
-  function decide(fn) { if (!decided) { decided = true; fn(); } }
+  function blocked(code) {
+    screen('Смотрите в канале Kino Wagt',
+           'Этот фильм открывается в нашем Telegram-канале.', code);
+  }
+  function missing(code) {
+    screen('Фильм пока недоступен',
+           'Загляните в наш канал — там вся коллекция.', code);
+  }
 
-  setTimeout(function () { decide(startPlayer); }, 4000);
+  // ---------- обычный плеер YouTube ----------
+  var started = false;
 
-  fetch('https://www.youtube.com/oembed?format=json&url=' +
-        encodeURIComponent('https://www.youtube.com/watch?v=' + videoId), {cache:'no-store'})
-    .then(function (r) {
-      if (r.ok) return decide(startPlayer);
-      if (r.status === 401 || r.status === 403) {
-        return decide(function () {
-          screen('Смотрите в канале Kino Wagt',
-                 'Этот фильм открывается в нашем Telegram-канале.', true);
-        });
-      }
-      if (r.status === 404) {
-        return decide(function () {
-          screen('Фильм пока недоступен', 'Загляните в наш канал — там вся коллекция.', true);
-        });
-      }
-      decide(startPlayer);
-    })
-    .catch(function () { decide(startPlayer); });
+  function show() {
+    if (started) return;
+    started = true;
+    stage.style.display = 'none';
+    wrap.style.display = 'block';
+  }
 
-  // ---------- собственный плеер ----------
-  var player = null, timer = null, dragging = false;
-  var PLAY = 'M8 5v14l11-7z';
-  var PAUSE = 'M6 5h4v14H6zm8 0h4v14h-4z';
-
-  function startPlayer() {
+  function play() {
+    show();
     var s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(s);
-    window.onYouTubeIframeAPIReady = build;
-    setTimeout(function () { if (!player) screen('Плеер не загрузился', 'Проверьте интернет и откройте ещё раз.', true); }, 15000);
+
+    window.onYouTubeIframeAPIReady = function () {
+      new YT.Player('frame', {
+        videoId: videoId,
+        playerVars: {
+          autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1,
+          iv_load_policy: 3, enablejsapi: 1, origin: location.origin
+        },
+        events: {
+          onError: function (e) {
+            var code = e && e.data;
+            if (code === 100) missing(code); else blocked(code);
+          }
+        }
+      });
+    };
+
+    // Если библиотека не поднялась — вставляем плеер напрямую
+    setTimeout(function () {
+      if (!window.YT || !window.YT.Player) {
+        wrap.innerHTML =
+          '<iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" ' +
+          'allowfullscreen referrerpolicy="origin-when-cross-origin" src="' +
+          'https://www.youtube-nocookie.com/embed/' + videoId +
+          '?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3"></iframe>';
+      }
+    }, 8000);
   }
 
-  function build() {
-    stage.style.display = 'none';
-    wrap.style.display = 'block';
-    player = new YT.Player('frame', {
-      videoId: videoId,
-      playerVars: {
-        autoplay: 1, controls: 0, rel: 0, modestbranding: 1,
-        iv_load_policy: 3, playsinline: 1, fs: 0, disablekb: 1
-      },
-      events: { onReady: ready, onStateChange: changed }
-    });
-  }
+  // ---------- быстрая проверка до запуска ----------
+  var decided = false;
+  function decide(fn, arg) { if (!decided) { decided = true; fn(arg); } }
 
-  function fmt(sec) {
-    sec = Math.max(0, Math.floor(sec || 0));
-    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-    return h ? h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0')
-             : m + ':' + String(s).padStart(2,'0');
-  }
+  setTimeout(function () { decide(play); }, 4000);
 
-  var big = document.getElementById('big'), bigIcon = document.getElementById('bigIcon');
-  var ppIcon = document.getElementById('ppIcon'), panel = document.getElementById('panel');
-  var done = document.getElementById('done'), knob = document.getElementById('knob');
-  var rail = document.getElementById('rail'), timeEl = document.getElementById('time');
-  var hideAt = 0;
-
-  function ready() {
-    try { player.playVideo(); } catch (e) {}
-    timer = setInterval(tick, 250);
-    wake();
-  }
-
-  function changed(e) {
-    var playing = e.data === YT.PlayerState.PLAYING;
-    bigIcon.setAttribute('d', playing ? PAUSE : PLAY);
-    ppIcon.setAttribute('d', playing ? PAUSE : PLAY);
-    big.classList.toggle('show', !playing);
-    if (!playing) wake();
-  }
-
-  function tick() {
-    if (!player || dragging || !player.getDuration) return;
-    var d = player.getDuration() || 0, t = player.getCurrentTime() || 0;
-    var pct = d ? (t / d) * 100 : 0;
-    done.style.width = pct + '%';
-    knob.style.left = pct + '%';
-    timeEl.textContent = fmt(t) + ' / ' + fmt(d);
-    if (hideAt && Date.now() > hideAt) { panel.classList.add('hidden'); hideAt = 0; }
-  }
-
-  function wake() {
-    panel.classList.remove('hidden');
-    hideAt = Date.now() + 3500;
-  }
-
-  function toggle() {
-    if (!player || !player.getPlayerState) return;
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo();
-    else player.playVideo();
-    wake();
-  }
-
-  document.getElementById('tap').addEventListener('click', toggle);
-  document.getElementById('pp').addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
-  document.getElementById('back').addEventListener('click', function (e) {
-    e.stopPropagation();
-    if (player) player.seekTo(Math.max(0, player.getCurrentTime() - 10), true);
-    wake();
-  });
-  document.getElementById('fwd').addEventListener('click', function (e) {
-    e.stopPropagation();
-    if (player) player.seekTo(player.getCurrentTime() + 10, true);
-    wake();
-  });
-  document.getElementById('full').addEventListener('click', function (e) {
-    e.stopPropagation();
-    var el = document.documentElement;
-    if (document.fullscreenElement) { document.exitFullscreen(); }
-    else if (el.requestFullscreen) { el.requestFullscreen().catch(function(){}); }
-    else if (tg && tg.requestFullscreen) { try { tg.requestFullscreen(); } catch (err) {} }
-    wake();
-  });
-
-  function seekAt(clientX) {
-    var box = rail.getBoundingClientRect();
-    var ratio = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
-    done.style.width = knob.style.left = (ratio * 100) + '%';
-    return ratio;
-  }
-  var track = document.getElementById('track');
-  track.addEventListener('pointerdown', function (e) {
-    dragging = true; seekAt(e.clientX); track.setPointerCapture(e.pointerId); wake();
-  });
-  track.addEventListener('pointermove', function (e) { if (dragging) seekAt(e.clientX); });
-  track.addEventListener('pointerup', function (e) {
-    if (!dragging) return;
-    dragging = false;
-    var ratio = seekAt(e.clientX);
-    if (player && player.getDuration) player.seekTo(player.getDuration() * ratio, true);
-    wake();
-  });
-
-  document.addEventListener('mousemove', wake);
+  fetch('https://www.youtube.com/oembed?format=json&url=' +
+        encodeURIComponent('https://www.youtube.com/watch?v=' + videoId), {cache: 'no-store'})
+    .then(function (r) {
+      if (r.ok) return decide(play);
+      if (r.status === 401 || r.status === 403) return decide(blocked, r.status);
+      if (r.status === 404) return decide(missing, r.status);
+      decide(play);
+    })
+    .catch(function () { decide(play); });
 })();
 </script>
 </body>
