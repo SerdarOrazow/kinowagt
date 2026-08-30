@@ -21,13 +21,19 @@
     background:radial-gradient(120% 80% at 50% 0%, #1c1c22 0%, var(--bg) 60%);}
   .screen{width:100%;height:100%;display:flex;flex-direction:column;
     align-items:center;justify-content:center;padding:32px 26px;text-align:center;}
-  .logo{width:96px;height:96px;border-radius:24px;
+
+  /* логотип: если рядом лежит logo.png — показываем его, иначе рисуем свой */
+  .logo{width:96px;height:96px;border-radius:24px;overflow:hidden;
     background:linear-gradient(160deg,var(--red-soft),var(--red) 55%,#a3121c);
     box-shadow:0 14px 40px rgba(224,31,45,.35);
     display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:22px;}
-  .logo b{font-size:22px;font-weight:800;letter-spacing:1.5px;line-height:1;color:#fff;}
-  .logo span{font-size:13px;font-weight:600;line-height:1;margin-top:3px;
+  .logo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .logo b,.logo span{display:none;}
+  .logo.fallback{background:linear-gradient(160deg,var(--red-soft),var(--red) 55%,#a3121c);}
+  .logo.fallback b{display:block;font-size:22px;font-weight:800;letter-spacing:1.5px;line-height:1;color:#fff;}
+  .logo.fallback span{display:block;font-size:13px;font-weight:600;line-height:1;margin-top:3px;
     color:rgba(255,255,255,.92);font-style:italic;}
+
   h1{font-size:17px;font-weight:600;margin-bottom:8px;}
   p{font-size:14px;line-height:1.6;color:var(--muted);max-width:340px;}
   .bar{width:132px;height:3px;border-radius:3px;margin-top:22px;
@@ -38,23 +44,60 @@
   @keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(260%)}}
   .btn{margin-top:24px;display:inline-block;padding:13px 26px;border-radius:12px;
     background:var(--red);color:#fff;font-size:15px;font-weight:600;text-decoration:none;
-    box-shadow:0 8px 22px rgba(224,31,45,.32);}
+    box-shadow:0 8px 22px rgba(224,31,45,.32);border:0;cursor:pointer;}
   .code{font-size:11px;color:#5f5f68;margin-top:14px;}
 
   /* плеер занимает весь экран */
   #wrap{position:fixed;inset:0;background:#000;display:none;}
   #frame,#wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+
+  /* каталог */
+  #cat{position:fixed;inset:0;display:none;flex-direction:column;
+    background:radial-gradient(120% 60% at 50% 0%, #17171c 0%, var(--bg) 55%);}
+  .top{padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;display:flex;
+    align-items:center;gap:10px;flex:0 0 auto;}
+  .top .mark{width:34px;height:34px;border-radius:9px;overflow:hidden;flex:0 0 auto;
+    background:linear-gradient(160deg,var(--red-soft),var(--red) 60%,#a3121c);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px;}
+  .top .mark img{width:100%;height:100%;object-fit:cover;display:block;}
+  .top h2{font-size:16px;font-weight:700;letter-spacing:.2px;}
+  .top h2 i{font-style:italic;font-weight:600;color:var(--red-soft);}
+  .search{margin:2px 16px 12px;flex:0 0 auto;}
+  .search input{width:100%;padding:11px 14px;border-radius:12px;border:0;outline:0;
+    background:rgba(255,255,255,.07);color:var(--text);font-size:15px;}
+  .search input::placeholder{color:#6e6e78;}
+  #grid{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:0 12px calc(env(safe-area-inset-bottom) + 20px);
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px;
+    align-content:start;}
+  .card{display:block;text-align:left;background:none;border:0;padding:0;color:inherit;cursor:pointer;}
+  .card .pic{width:100%;aspect-ratio:2/3;border-radius:12px;background:#17171c;
+    background-size:cover;background-position:center;box-shadow:0 6px 18px rgba(0,0,0,.45);}
+  .card .t{font-size:12px;line-height:1.3;margin-top:6px;font-weight:600;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card .y{font-size:11px;color:var(--muted);margin-top:2px;}
+  .empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;line-height:1.6;}
 </style>
 </head>
 <body>
 
 <div id="stage">
   <div class="screen">
-    <div class="logo"><b>KINO</b><span>wagt</span></div>
+    <div class="logo fallback"><b>KINO</b><span>wagt</span></div>
     <h1>Готовим плеер</h1>
     <p>Секунду, включаем видео…</p>
     <div class="bar"><i></i></div>
   </div>
+</div>
+
+<div id="cat">
+  <div class="top">
+    <div class="mark" id="mark">KW</div>
+    <h2>Kino <i>Wagt</i></h2>
+  </div>
+  <div class="search"><input id="q" type="search" placeholder="Поиск по названию…" autocomplete="off"></div>
+  <div id="grid"></div>
 </div>
 
 <div id="wrap"><div id="frame"></div></div>
@@ -73,14 +116,38 @@
 
   var stage = document.getElementById('stage');
   var wrap  = document.getElementById('wrap');
+  var cat   = document.getElementById('cat');
+  var grid  = document.getElementById('grid');
   var CHANNEL = 'https://t.me/kino_wagt';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Свой логотип: если рядом с index.html лежит logo.png — берём его
+  var logo = new Image();
+  logo.onload = function () {
+    var box = document.querySelector('.logo');
+    if (box) { box.classList.remove('fallback'); box.insertBefore(logo, box.firstChild); }
+    var mark = document.getElementById('mark');
+    if (mark) { var c = logo.cloneNode(); mark.textContent = ''; mark.appendChild(c); }
+  };
+  logo.src = 'logo.png';
+
+  function logoHtml() {
+    return logo.complete && logo.naturalWidth
+      ? '<div class="logo"><img src="logo.png" alt=""></div>'
+      : '<div class="logo fallback"><b>KINO</b><span>wagt</span></div>';
+  }
 
   function screen(title, text, code) {
     wrap.style.display = 'none';
+    cat.style.display = 'none';
     stage.style.display = 'flex';
     stage.innerHTML =
-      '<div class="screen">' +
-        '<div class="logo"><b>KINO</b><span>wagt</span></div>' +
+      '<div class="screen">' + logoHtml() +
         '<h1>' + title + '</h1><p>' + text + '</p>' +
         '<a class="btn" id="chan" href="' + CHANNEL + '">Открыть канал Kino Wagt</a>' +
         (code === undefined ? '' : '<div class="code">код ' + code + '</div>') +
@@ -127,92 +194,154 @@
     } catch (e) { return ''; }
   }
 
-  var raw = (param() || '').trim();
-  if (!raw) {
-    screen('Видео не выбрано', 'Откройте плеер кнопкой «Смотреть» под постом.');
-    return;
+  function idFrom(raw) {
+    raw = (raw || '').trim();
+    if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw;
+    var m = decodeUrl(raw).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : '';
   }
 
-  var videoId = '';
-  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) {
-    videoId = raw;
-  } else {
-    var m = decodeUrl(raw).match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/);
-    if (m) videoId = m[1];
+  // ------------------------------------------------------------------ //
+  //  Каталог: films.json рядом с index.html
+  // ------------------------------------------------------------------ //
+  var films = [];
+
+  function render(list) {
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty">Здесь пока пусто.<br>Фильмы появятся, ' +
+                       'как только выйдут новые посты в канале.</div>';
+      return;
+    }
+    grid.innerHTML = list.map(function (f, i) {
+      var pic = f.poster ? 'background-image:url(' + esc(f.poster) + ')' : '';
+      return '<button class="card" data-i="' + i + '">' +
+               '<div class="pic" style="' + pic + '"></div>' +
+               '<div class="t">' + esc(f.title || 'Без названия') + '</div>' +
+               (f.year ? '<div class="y">' + esc(f.year) + '</div>' : '') +
+             '</button>';
+    }).join('');
+    var cards = grid.querySelectorAll('.card');
+    for (var k = 0; k < cards.length; k++) {
+      cards[k].addEventListener('click', function () {
+        var f = list[+this.getAttribute('data-i')];
+        if (f && f.id) { cat.style.display = 'none'; start(f.id); }
+      });
+    }
   }
+
+  function catalog() {
+    stage.style.display = 'none';
+    wrap.style.display = 'none';
+    cat.style.display = 'flex';
+    grid.innerHTML = '<div class="empty">Загружаю каталог…</div>';
+
+    fetch('films.json?t=' + Date.now(), {cache: 'no-store'})
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (data) {
+        films = (Array.isArray(data) ? data : (data && data.films) || []).filter(function (f) {
+          return f && f.id;
+        });
+        render(films);
+      })
+      .catch(function () { render([]); });
+
+    var q = document.getElementById('q');
+    q.addEventListener('input', function () {
+      var s = this.value.trim().toLowerCase();
+      if (!s) return render(films);
+      render(films.filter(function (f) {
+        return ((f.title || '') + ' ' + (f.original || '') + ' ' + (f.year || ''))
+                 .toLowerCase().indexOf(s) >= 0;
+      }));
+    });
+  }
+
+  // ------------------------------------------------------------------ //
+  //  Плеер (стандартный YouTube)
+  // ------------------------------------------------------------------ //
+  function start(videoId) {
+    var started = false, decided = false;
+
+    function blocked(code) {
+      screen('Смотрите в канале Kino Wagt',
+             'Этот фильм открывается в нашем Telegram-канале.', code);
+    }
+    function missing(code) {
+      screen('Фильм пока недоступен',
+             'Загляните в наш канал — там вся коллекция.', code);
+    }
+
+    function show() {
+      if (started) return;
+      started = true;
+      stage.style.display = 'none';
+      cat.style.display = 'none';
+      wrap.style.display = 'block';
+    }
+
+    function play() {
+      show();
+      var s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+
+      function build() {
+        new YT.Player('frame', {
+          videoId: videoId,
+          playerVars: {
+            autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1,
+            iv_load_policy: 3, enablejsapi: 1, origin: location.origin
+          },
+          events: {
+            onError: function (e) {
+              var code = e && e.data;
+              if (code === 100) missing(code); else blocked(code);
+            }
+          }
+        });
+      }
+
+      if (window.YT && window.YT.Player) build();
+      else window.onYouTubeIframeAPIReady = build;
+
+      // Если библиотека не поднялась — вставляем плеер напрямую
+      setTimeout(function () {
+        if (!window.YT || !window.YT.Player) {
+          wrap.innerHTML =
+            '<iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" ' +
+            'allowfullscreen referrerpolicy="origin-when-cross-origin" src="' +
+            'https://www.youtube-nocookie.com/embed/' + videoId +
+            '?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3"></iframe>';
+        }
+      }, 8000);
+    }
+
+    function decide(fn, arg) { if (!decided) { decided = true; fn(arg); } }
+
+    stage.style.display = 'flex';
+    setTimeout(function () { decide(play); }, 4000);
+
+    fetch('https://www.youtube.com/oembed?format=json&url=' +
+          encodeURIComponent('https://www.youtube.com/watch?v=' + videoId), {cache: 'no-store'})
+      .then(function (r) {
+        if (r.ok) return decide(play);
+        if (r.status === 401 || r.status === 403) return decide(blocked, r.status);
+        if (r.status === 404) return decide(missing, r.status);
+        decide(play);
+      })
+      .catch(function () { decide(play); });
+  }
+
+  // ------------------------------------------------------------------ //
+  var raw = (param() || '').trim();
+  if (!raw) { catalog(); return; }          // открыли приложение без ссылки
+
+  var videoId = idFrom(raw);
   if (!videoId) {
     screen('Не удалось открыть', 'Загляните в наш канал — там вся коллекция.');
     return;
   }
-
-  function blocked(code) {
-    screen('Смотрите в канале Kino Wagt',
-           'Этот фильм открывается в нашем Telegram-канале.', code);
-  }
-  function missing(code) {
-    screen('Фильм пока недоступен',
-           'Загляните в наш канал — там вся коллекция.', code);
-  }
-
-  // ---------- обычный плеер YouTube ----------
-  var started = false;
-
-  function show() {
-    if (started) return;
-    started = true;
-    stage.style.display = 'none';
-    wrap.style.display = 'block';
-  }
-
-  function play() {
-    show();
-    var s = document.createElement('script');
-    s.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(s);
-
-    window.onYouTubeIframeAPIReady = function () {
-      new YT.Player('frame', {
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1,
-          iv_load_policy: 3, enablejsapi: 1, origin: location.origin
-        },
-        events: {
-          onError: function (e) {
-            var code = e && e.data;
-            if (code === 100) missing(code); else blocked(code);
-          }
-        }
-      });
-    };
-
-    // Если библиотека не поднялась — вставляем плеер напрямую
-    setTimeout(function () {
-      if (!window.YT || !window.YT.Player) {
-        wrap.innerHTML =
-          '<iframe allow="autoplay; encrypted-media; picture-in-picture; fullscreen" ' +
-          'allowfullscreen referrerpolicy="origin-when-cross-origin" src="' +
-          'https://www.youtube-nocookie.com/embed/' + videoId +
-          '?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3"></iframe>';
-      }
-    }, 8000);
-  }
-
-  // ---------- быстрая проверка до запуска ----------
-  var decided = false;
-  function decide(fn, arg) { if (!decided) { decided = true; fn(arg); } }
-
-  setTimeout(function () { decide(play); }, 4000);
-
-  fetch('https://www.youtube.com/oembed?format=json&url=' +
-        encodeURIComponent('https://www.youtube.com/watch?v=' + videoId), {cache: 'no-store'})
-    .then(function (r) {
-      if (r.ok) return decide(play);
-      if (r.status === 401 || r.status === 403) return decide(blocked, r.status);
-      if (r.status === 404) return decide(missing, r.status);
-      decide(play);
-    })
-    .catch(function () { decide(play); });
+  start(videoId);
 })();
 </script>
 </body>
